@@ -1,128 +1,53 @@
-"""
-Resume Parser Tool
-
-This module provides utility functions for parsing resumes.
-"""
-
-import re
-from pathlib import Path
-from typing import Dict, Any, List
-
 from agno.tools import tool
-from logger.logger import log_debug, log_error
+from pathlib import Path
+import json
+import datetime
+from logger.logger import log_info, log_debug, log_error, log_warn
 
-@tool
-def extract_contact_info(text: str) -> Dict[str, Any]:
-    """
-    Extract contact information from resume text.
-    
-    Args:
-        text: Resume text content
-        
-    Returns:
-        Dict with extracted contact information
-    """
-    # Extract email address
-    email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-    email_matches = re.findall(email_pattern, text)
-    email = email_matches[0] if email_matches else None
-    
-    # Extract phone number
-    phone_pattern = r'(?:\+\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}'
-    phone_matches = re.findall(phone_pattern, text)
-    phone = phone_matches[0] if phone_matches else None
-    
-    # Extract LinkedIn profile
-    linkedin_pattern = r'(?:linkedin\.com/in/|linkedin/|linkedin:)([A-Za-z0-9_-]+)'
-    linkedin_matches = re.findall(linkedin_pattern, text, re.IGNORECASE)
-    linkedin = linkedin_matches[0] if linkedin_matches else None
-    
-    return {
-        "email": email,
-        "phone": phone,
-        "linkedin": linkedin
-    }
+@tool(description="Parse a resume PDF and extract its text content.")
+def parse_resume_pdf(pdf_path: str) -> dict:
+    try:
+        path = Path(pdf_path)
+        if not path.exists():
+            return {"success": False, "error": f"File not found: {pdf_path}"}
+        content = path.read_text()
+        return {"filename": path.name, "content": content, "success": True}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
-@tool
-def extract_education(text: str) -> List[Dict[str, Any]]:
-    """
-    Extract education information from resume text.
-    
-    Args:
-        text: Resume text content
-        
-    Returns:
-        List of education entries
-    """
-    education = []
-    
-    # Common degree patterns
-    degree_patterns = [
-        r'(B\.?S\.?|Bachelor of Science|Bachelor\'s)',
-        r'(M\.?S\.?|Master of Science|Master\'s)',
-        r'(Ph\.?D\.?|Doctor of Philosophy)',
-        r'(B\.?A\.?|Bachelor of Arts)',
-        r'(M\.?B\.?A\.?|Master of Business Administration)'
-    ]
-    
-    # Try to find education sections
-    education_section = re.search(r'(?:EDUCATION|Education).*?(?:EXPERIENCE|Experience|SKILLS|Skills|$)', 
-                                 text, re.DOTALL)
-    
-    if education_section:
-        section_text = education_section.group(0)
-        
-        # Extract degree, institution, and year
-        for degree_pattern in degree_patterns:
-            matches = re.finditer(degree_pattern + r'.*?(\d{4})', section_text, re.DOTALL)
-            
-            for match in matches:
-                degree = match.group(1).strip()
-                year = match.group(2).strip()
-                
-                # Try to extract institution
-                inst_match = re.search(r'at|from|in\s+([\w\s]+)', match.group(0))
-                institution = inst_match.group(1).strip() if inst_match else "Unknown"
-                
-                education.append({
-                    "degree": degree,
-                    "institution": institution,
-                    "year": year
-                })
-    
-    return education
+@tool(description="Load resume metadata from a JSON file.")
+def load_metadata(metadata_path: str) -> dict:
+    try:
+        path = Path(metadata_path)
+        if not path.exists():
+            return {"success": False, "error": f"Metadata file not found: {metadata_path}"}
+        metadata = json.loads(path.read_text(encoding="utf-8"))
+        return {"metadata": metadata, "success": True}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
-@tool
-def extract_skills(text: str) -> List[str]:
-    """
-    Extract skills from resume text.
-    
-    Args:
-        text: Resume text content
-        
-    Returns:
-        List of extracted skills
-    """
-    # Common skills to look for
-    common_skills = [
-        "Python", "Java", "JavaScript", "TypeScript", "C++", "C#", "PHP", "Ruby", "Go",
-        "SQL", "NoSQL", "MongoDB", "PostgreSQL", "MySQL", "Redis", "AWS", "Azure", "GCP",
-        "Docker", "Kubernetes", "ML", "AI", "Machine Learning", "Deep Learning", "NLP",
-        "React", "Angular", "Vue", "Node.js", "Django", "Flask", "FastAPI", "Spring",
-        "DevOps", "CI/CD", "Git", "Jenkins", "Terraform", "Ansible", "Agile", "Scrum"
-    ]
-    
-    found_skills = []
-    
-    # Look for skills section
-    skills_section = re.search(r'(?:SKILLS|Skills|TECHNOLOGIES|Technologies).*?(?:EXPERIENCE|Experience|EDUCATION|Education|$)', 
-                               text, re.DOTALL)
-    
-    section_text = skills_section.group(0) if skills_section else text
-    
-    # Look for common skills
-    for skill in common_skills:
-        if re.search(r'\b' + re.escape(skill) + r'\b', section_text, re.IGNORECASE):
-            found_skills.append(skill)
-    
-    return found_skills
+@tool(description="Find the metadata file that matches a resume name.")
+def find_matching_metadata(resume_name: str, metadata_folder: str) -> dict:
+    try:
+        metadata_path = Path(metadata_folder) / f"{resume_name}.json"
+        if metadata_path.exists():
+            return {"metadata_path": str(metadata_path), "success": True}
+        return {"success": False, "warning": "Matching metadata not found"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@tool(description="Process all resume PDFs in a folder.")
+def batch_process_resume_folder(folder_path: str) -> dict:
+    try:
+        folder = Path(folder_path)
+        if not folder.exists():
+            return {"success": False, "error": f"Folder not found: {folder_path}"}
+        pdfs = list(folder.glob("*.pdf"))
+        results = []
+        for pdf in pdfs:
+            result = parse_resume_pdf(str(pdf))
+            result["filename"] = pdf.name
+            results.append(result)
+        return {"total_files": len(pdfs), "results": results, "success": True}
+    except Exception as e:
+        return {"success": False, "error": str(e)}

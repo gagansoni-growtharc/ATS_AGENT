@@ -10,9 +10,9 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 from agno.team.team import Team
-from agents.resume_agent import ResumeAgent
-from agents.jd_agent import JDAgent
-from agents.coordinator import CoordinatorAgent
+from agents.resume_agent import Agent as ResumeAgent
+from agents.jd_agent import Agent as JDAgent
+from agents.coordinator import Agent as CoordinatorAgent
 from logger.logger import logger, log_info, log_debug
 from config.settings import get_settings
 
@@ -52,8 +52,8 @@ def main():
         success_criteria="Successfully match and rank candidates based on job description requirements",
         members=[resume_agent.agent, jd_agent.agent, coordinator.agent],
         instructions=[
-            "Process the job description using the parse_job_description_content tool",
-            "Process resumes from the folder path provided (let the ResumeParser determine the right tool to use)",
+            "Process the job description using the JDParser's parse_job_description_content tool",
+            "Process resumes from the folder path provided using the ResumeParser's batch_process_resume_folder tool",
             "Score and rank candidates based on metadata and content",
             "Move top candidates to filtered folder",
             "Log all actions to MongoDB and console"
@@ -109,9 +109,13 @@ def main():
     Please analyze the job requirements and then process the candidate resumes in this folder: {str(resume_folder)}
     
     Follow these steps:
-    1. First, use the JDParser's parse_job_description_content tool to extract key information from the job description
-    2. Then, use the ResumeParser's batch_process_resume_folder tool to process all resumes from the folder
+    1. First, use the JDParser to extract key information from the job description text I've provided
+    2. Then, use the ResumeParser to process all resumes from the folder at: {str(resume_folder)}
     3. Finally, use the Coordinator to match and rank candidates
+    
+    Be explicit when calling tools and make sure to provide the correct parameters.
+    For JDParser, use parse_job_description_content with the job description text.
+    For ResumeParser, use batch_process_resume_folder with the resume folder path.
     """
     
     # Handle metadata folder (optional)
