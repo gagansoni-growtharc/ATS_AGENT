@@ -63,19 +63,23 @@ class JDAgent:
             # Extract qualifications
             qualifications = extract_qualifications(jd_content)
             
-            # Log to MongoDB
-            from pymongo import MongoClient
-            client = MongoClient(self.settings.MONGO_URI)
-            db = client.ats_agent
-            collection = db.ats_job_descriptions
-            collection.insert_one({
-                "filename": path.name,
-                "job_title": job_title,
-                "required_skills": required_skills,
-                "responsibilities": responsibilities,
-                "qualifications": qualifications,
-                "timestamp": datetime.datetime.now()
-            })
+            # Log to MongoDB if available
+            if hasattr(self.settings, 'MONGO_URI') and self.settings.MONGO_URI:
+                try:
+                    from pymongo import MongoClient
+                    client = MongoClient(self.settings.MONGO_URI)
+                    db = client.ats_agent
+                    collection = db.ats_job_descriptions
+                    collection.insert_one({
+                        "filename": path.name,
+                        "job_title": job_title,
+                        "required_skills": required_skills,
+                        "responsibilities": responsibilities,
+                        "qualifications": qualifications,
+                        "timestamp": datetime.datetime.now()
+                    })
+                except Exception as e:
+                    log_warn(f"Failed to store in MongoDB: {str(e)}")
             
             log_info(f"Job description parsed: {job_title}", source="jd_agent")
             
@@ -152,7 +156,7 @@ class JDAgent:
             return {"error": str(e), "success": False}
     
     @tool
-    def get_required_skills(self, parsed_jd: Dict[str, Any]) -> Dict[str, int]:
+    def get_required_skills(self, parsed_jd: Dict[str, Any]) -> Dict[str, Any]:
         """
         Extract required skills from parsed job description.
         
@@ -176,7 +180,7 @@ class JDAgent:
                     required_skills = extract_required_skills(content)
             
             log_info(f"Extracted {len(required_skills)} required skills", source="jd_agent")
-            return required_skills
+            return {"skills": required_skills, "success": True}
             
         except Exception as e:
             log_error(f"Error extracting required skills: {str(e)}")
@@ -203,11 +207,7 @@ class JDAgent:
             tools=[
                 self.parse_job_description,
                 self.parse_job_description_content,
-                self.get_required_skills,
-                extract_job_title,
-                extract_required_skills,
-                extract_responsibilities,
-                extract_qualifications
+                self.get_required_skills
             ],
             markdown=True,
         )

@@ -41,7 +41,7 @@ def extract_job_title(text: str) -> str:
     return "Undefined Role"
 
 @tool
-def extract_required_skills(text: str) -> Dict[str, int]:
+def extract_required_skills(text: str) -> Dict[str, Any]:
     """
     Extract required skills and experience years from job description.
     
@@ -83,6 +83,21 @@ def extract_required_skills(text: str) -> Dict[str, int]:
                 
                 skills[skill] = years
     
+    # If no skills with experience requirements found, extract common skills without years
+    if not skills:
+        # Common technical skills to look for
+        common_skills = [
+            "Python", "Java", "JavaScript", "TypeScript", "C++", "C#", "PHP", "Ruby", "Go",
+            "SQL", "NoSQL", "MongoDB", "PostgreSQL", "MySQL", "Redis", "AWS", "Azure", "GCP",
+            "Docker", "Kubernetes", "ML", "AI", "Machine Learning", "Deep Learning", "NLP",
+            "React", "Angular", "Vue", "Node.js", "Django", "Flask", "FastAPI", "Spring",
+            "DevOps", "CI/CD", "Git", "Jenkins", "Terraform", "Ansible", "Agile", "Scrum"
+        ]
+        
+        for skill in common_skills:
+            if re.search(r'\b' + re.escape(skill) + r'\b', text, re.IGNORECASE):
+                skills[skill] = 1  # Default to 1 year requirement
+    
     return skills
 
 @tool
@@ -113,7 +128,11 @@ def extract_responsibilities(text: str) -> List[str]:
         else:
             # If no bullets found, try splitting by newlines
             lines = [line.strip() for line in section_text.split('\n') if line.strip()]
-            responsibilities.extend(lines[1:])  # Skip the header
+            # Skip header line if it contains "responsibilities" or similar
+            if len(lines) > 1 and re.search(r'responsibilities|duties', lines[0], re.IGNORECASE):
+                responsibilities.extend(lines[1:])
+            else:
+                responsibilities.extend(lines)
     
     return responsibilities
 
@@ -145,6 +164,10 @@ def extract_qualifications(text: str) -> List[str]:
         else:
             # If no bullets found, try splitting by newlines
             lines = [line.strip() for line in section_text.split('\n') if line.strip()]
-            qualifications.extend(lines[1:])  # Skip the header
+            # Skip header line if it contains "requirements" or similar
+            if len(lines) > 1 and re.search(r'requirements|qualifications', lines[0], re.IGNORECASE):
+                qualifications.extend(lines[1:])
+            else:
+                qualifications.extend(lines)
     
     return qualifications

@@ -52,7 +52,7 @@ def main():
         success_criteria="Successfully match and rank candidates based on job description requirements",
         members=[resume_agent.agent, jd_agent.agent, coordinator.agent],
         instructions=[
-            "Process the job description text provided directly in the message, not as a file path",
+            "Process the job description text provided directly in the message",
             "Process resumes from the folder path provided using the batch_process_resume_folder tool",
             "Score and rank candidates based on metadata and content",
             "Move top candidates to filtered folder",
@@ -100,35 +100,27 @@ def main():
     
     # Build the message based on available parameters
     message = f"""
-    IMPORTANT: The job description content is provided directly below - please parse this content directly, not as a file path:
+    I need to process job applications for the following job description:
     
+    ```
     {jd_content}
+    ```
     
-    Resume folder: {str(resume_folder)}
-    Please process all resumes in this folder using the batch_process_resume_folder tool.
+    Please analyze the job requirements and then process the candidate resumes in this folder: {str(resume_folder)}
+    
+    Use the JDParser to first extract key information from the job description, then use the ResumeParser to 
+    process resumes from the folder, and finally use the Coordinator to match and rank candidates.
     """
     
     # Handle metadata folder (optional)
     if args.metadata:
         metadata_folder = Path(args.metadata)
         if metadata_folder.exists():
-            message += f"\nMetadata folder: {str(metadata_folder)}"
+            message += f"\n\nAdditional candidate metadata is available in this folder: {str(metadata_folder)}"
         else:
             log_info(f"Metadata folder not found: {args.metadata}, continuing without metadata")
-    else:
-        log_info("No metadata folder specified, continuing without metadata")
     
-    message += f"""
-    
-    Strict mode: {"enabled" if args.strict else "disabled"}
-    
-    Process steps:
-    1. Parse the job description content provided above using parse_job_description_content
-    2. Process all resumes in the folder using batch_process_resume_folder
-    3. Match resumes against the job requirements
-    4. Rank the candidates and move top matches to filtered_resumes folder
-    5. Log all actions
-    """
+    message += f"\n\nStrict mode is {'enabled' if args.strict else 'disabled'} for skills matching."
     
     # Execute the workflow
     log_info("Starting ATS workflow", center=True)
