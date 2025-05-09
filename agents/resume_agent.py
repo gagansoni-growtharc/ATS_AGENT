@@ -3,7 +3,7 @@ Resume Parsing Agent
 
 This module contains the agent responsible for parsing resumes and associated metadata.
 """
-
+from functools import partial
 import json
 import os
 from pathlib import Path
@@ -221,8 +221,8 @@ class ResumeAgent:
             log_error(f"Error batch processing resumes: {str(e)}")
             return {"error": str(e), "success": False}
     
+
     def _setup_agent(self) -> Agent:
-        """Set up the resume parsing agent."""
         return Agent(
             name="ResumeParser",
             role="Parse and extract information from resumes and metadata files",
@@ -234,19 +234,19 @@ class ResumeAgent:
                 2. Loading and validating resume metadata (if available)
                 3. Ensuring all required fields are present
                 4. Storing information in MongoDB (if available)
-                
+
                 IMPORTANT: When asked to process resumes in a folder, use the batch_process_resume_folder tool
                 rather than trying to list files directly. This will handle the file listing and processing
                 for you automatically.
-                
+
                 Always validate input files before processing them.
                 Metadata is optional - if not available, continue with resume content only.
             """),
             tools=[
-                self.parse_resume_pdf, 
+                self.parse_resume_pdf,
                 self.load_metadata,
                 self.find_matching_metadata,
-                self.batch_process_resume_folder
+                self.batch_process_resume_folder,
             ],
             knowledge=self.kb,
             add_references=True,

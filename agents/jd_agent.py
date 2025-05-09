@@ -3,7 +3,7 @@ Job Description Agent
 
 This module contains the agent responsible for parsing job descriptions and extracting requirements.
 """
-
+from functools import partial
 import json
 import os
 from pathlib import Path
@@ -187,7 +187,6 @@ class JDAgent:
             return {"error": str(e), "success": False}
     
     def _setup_agent(self) -> Agent:
-        """Set up the job description parsing agent."""
         return Agent(
             name="JDParser",
             role="Parse job descriptions and extract requirements",
@@ -199,7 +198,7 @@ class JDAgent:
                 2. Identifying required skills and experience levels
                 3. Extracting responsibilities and qualifications
                 4. Providing structured data for resume matching
-                
+
                 IMPORTANT: You can process job descriptions either from a file path OR from direct text content.
                 If you are given direct text content, use the parse_job_description_content tool.
                 If you are given a file path, use the parse_job_description tool.
@@ -207,7 +206,7 @@ class JDAgent:
             tools=[
                 self.parse_job_description,
                 self.parse_job_description_content,
-                self.get_required_skills
+                self.get_required_skills,
             ],
             markdown=True,
         )
