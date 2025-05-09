@@ -2,10 +2,12 @@
 Coordinator Agent
 
 This module contains the coordinator agent that manages the resume matching process.
+With improved error handling and debugging.
 """
 
 import os
 import shutil
+import traceback  # Added for better error tracing
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from textwrap import dedent
@@ -41,8 +43,6 @@ class CoordinatorAgent:
             Dict with score and matching details
         """
         try:
-            # Note: This is just a placeholder. The actual scoring is done by the LLM
-            # based on the resume content, job requirements, and metadata.
             log_debug(f"Scoring resume with {len(resume_content)} chars against {len(job_requirements)} requirements")
             
             # Return structured data for the LLM to fill in
@@ -58,7 +58,8 @@ class CoordinatorAgent:
             
         except Exception as e:
             log_error(f"Error scoring resume: {str(e)}")
-            return {"error": str(e), "success": False}
+            log_debug(f"Traceback: {traceback.format_exc()}")
+            return {"error": str(e), "success": False, "traceback": traceback.format_exc()}
     
     @tool
     def rename_and_move_resume(self, source_path: str, score: float, 
@@ -102,7 +103,8 @@ class CoordinatorAgent:
             
         except Exception as e:
             log_error(f"Error moving resume: {str(e)}")
-            return {"error": str(e), "success": False}
+            log_debug(f"Traceback: {traceback.format_exc()}")
+            return {"error": str(e), "success": False, "traceback": traceback.format_exc()}
     
     @tool
     def batch_process_resumes(self, 
@@ -125,6 +127,7 @@ class CoordinatorAgent:
             Dict with results of batch processing
         """
         try:
+            log_info(f"Starting batch processing of resumes in {resume_folder}")
             folder = Path(resume_folder)
             if not folder.exists():
                 log_error(f"Resume folder not found: {resume_folder}")
@@ -146,7 +149,8 @@ class CoordinatorAgent:
             
         except Exception as e:
             log_error(f"Error in batch processing: {str(e)}")
-            return {"error": str(e), "success": False}
+            log_debug(f"Traceback: {traceback.format_exc()}")
+            return {"error": str(e), "success": False, "traceback": traceback.format_exc()}
             
     
     def _setup_agent(self) -> Agent:
@@ -165,11 +169,13 @@ class CoordinatorAgent:
                 
                 Consider metadata if available, but it's optional.
                 Use your judgment and prioritize content-based matching.
+                
+                Report any errors in detail to help with debugging.
             """),
             tools=[
                 self.score_resume,
                 self.rename_and_move_resume,
-                self.batch_process_resumes  # Add the new alias tool
+                self.batch_process_resumes
             ],
             markdown=True,
         )

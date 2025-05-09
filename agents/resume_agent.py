@@ -221,7 +221,6 @@ class ResumeAgent:
             log_error(f"Error batch processing resumes: {str(e)}")
             return {"error": str(e), "success": False}
     
-
     def _setup_agent(self) -> Agent:
         return Agent(
             name="ResumeParser",

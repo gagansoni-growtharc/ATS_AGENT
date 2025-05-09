@@ -52,8 +52,8 @@ def main():
         success_criteria="Successfully match and rank candidates based on job description requirements",
         members=[resume_agent.agent, jd_agent.agent, coordinator.agent],
         instructions=[
-            "Process the job description text provided directly in the message",
-            "Process resumes from the folder path provided using the batch_process_resume_folder tool",
+            "Process the job description using the parse_job_description_content tool",
+            "Process resumes from the folder path provided (let the ResumeParser determine the right tool to use)",
             "Score and rank candidates based on metadata and content",
             "Move top candidates to filtered folder",
             "Log all actions to MongoDB and console"
@@ -108,8 +108,10 @@ def main():
     
     Please analyze the job requirements and then process the candidate resumes in this folder: {str(resume_folder)}
     
-    Use the JDParser to first extract key information from the job description, then use the ResumeParser to 
-    process resumes from the folder, and finally use the Coordinator to match and rank candidates.
+    Follow these steps:
+    1. First, use the JDParser's parse_job_description_content tool to extract key information from the job description
+    2. Then, use the ResumeParser's batch_process_resume_folder tool to process all resumes from the folder
+    3. Finally, use the Coordinator to match and rank candidates
     """
     
     # Handle metadata folder (optional)
