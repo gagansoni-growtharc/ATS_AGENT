@@ -1,7 +1,7 @@
 """
 Job Description Parsing Agent (Functional Style)
 
-This module defines JD parsing tools and bundles them into a functional agent.
+This module defines JD parsing tools and bundles them into an Agent.
 """
 
 import datetime
@@ -28,6 +28,15 @@ settings = get_settings()
 
 @tool(description="Parse a job description file and extract structured information.")
 def parse_job_description(jd_path: str) -> Dict[str, Any]:
+    """
+    Parse a job description from a file.
+    
+    Args:
+        jd_path: Path to the job description file
+        
+    Returns:
+        Structured job description data
+    """
     try:
         path = Path(jd_path)
         if not path.exists():
@@ -46,6 +55,15 @@ def parse_job_description(jd_path: str) -> Dict[str, Any]:
 
 @tool(description="Parse job description content directly from string input.")
 def parse_job_description_content(jd_content: str) -> Dict[str, Any]:
+    """
+    Parse job description from text content.
+    
+    Args:
+        jd_content: Job description text
+        
+    Returns:
+        Structured job description data
+    """
     try:
         log_debug(f"Parsing job description content")
 
@@ -86,6 +104,15 @@ def parse_job_description_content(jd_content: str) -> Dict[str, Any]:
 
 @tool(description="Extract only the required skills from a parsed JD.")
 def get_required_skills(parsed_jd: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Extract just the skills from a parsed job description.
+    
+    Args:
+        parsed_jd: Parsed job description dictionary
+        
+    Returns:
+        Dictionary with required skills
+    """
     try:
         if not parsed_jd.get("success", False):
             log_error("Invalid job description data")

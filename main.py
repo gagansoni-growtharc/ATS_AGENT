@@ -10,9 +10,9 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 from agno.team.team import Team
-from agents.resume_agent import Agent as ResumeAgent
-from agents.jd_agent import Agent as JDAgent
-from agents.coordinator import Agent as CoordinatorAgent
+from agents.resume_agent import resume_parser_agent
+from agents.jd_agent import jd_parser_agent
+from agents.coordinator import coordinator_agent
 from logger.logger import logger, log_info, log_debug
 from config.settings import get_settings
 
@@ -40,17 +40,12 @@ def main():
     
     log_info("Starting ATS Resume Filtering System", center=True)
     
-    # Initialize agents
-    resume_agent = ResumeAgent(settings)
-    jd_agent = JDAgent(settings)
-    coordinator = CoordinatorAgent(settings)
-    
     # Create the team
     ats_team = Team(
         name="ATS_Team",
         mode="coordinate",
         success_criteria="Successfully match and rank candidates based on job description requirements",
-        members=[resume_agent.agent, jd_agent.agent, coordinator.agent],
+        members=[resume_parser_agent, jd_parser_agent, coordinator_agent],
         instructions=[
             "Process the job description using the JDParser's parse_job_description_content tool",
             "Process resumes from the folder path provided using the ResumeParser's batch_process_resume_folder tool",

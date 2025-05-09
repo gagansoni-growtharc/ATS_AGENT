@@ -1,7 +1,7 @@
 """
 Resume Parsing Agent (Functional Style)
 
-This module defines resume parsing tools and registers them into an Agent.
+This module defines resume parsing tools and bundles them into an Agent.
 """
 
 from pathlib import Path
@@ -45,6 +45,15 @@ except Exception as e:
 
 @tool(description="Parse a resume PDF file and extract its text content.")
 def parse_resume_pdf(pdf_path: str) -> Dict[str, Any]:
+    """
+    Extract text content from a resume PDF.
+    
+    Args:
+        pdf_path: Path to the PDF file
+        
+    Returns:
+        Dictionary with resume content
+    """
     try:
         path = Path(pdf_path)
         if not path.exists():
@@ -67,6 +76,15 @@ def parse_resume_pdf(pdf_path: str) -> Dict[str, Any]:
 
 @tool(description="Load metadata from a JSON file for a given resume.")
 def load_metadata(metadata_path: str) -> Dict[str, Any]:
+    """
+    Load resume metadata from a JSON file.
+    
+    Args:
+        metadata_path: Path to the metadata JSON file
+        
+    Returns:
+        Dictionary with resume metadata
+    """
     try:
         path = Path(metadata_path)
         if not path.exists():
@@ -100,6 +118,16 @@ def load_metadata(metadata_path: str) -> Dict[str, Any]:
 
 @tool(description="Find metadata file matching a given resume.")
 def find_matching_metadata(resume_name: str, metadata_folder: str) -> Dict[str, Any]:
+    """
+    Find a metadata file that matches a resume filename.
+    
+    Args:
+        resume_name: Resume filename (without extension)
+        metadata_folder: Folder containing metadata files
+        
+    Returns:
+        Path to matching metadata file if found
+    """
     try:
         metadata_path = Path(metadata_folder) / f"{resume_name}.json"
         if metadata_path.exists():
@@ -114,6 +142,15 @@ def find_matching_metadata(resume_name: str, metadata_folder: str) -> Dict[str, 
 
 @tool(description="Process all resume files in a folder.")
 def batch_process_resume_folder(folder_path: str) -> Dict[str, Any]:
+    """
+    Process all resume PDF files in a folder.
+    
+    Args:
+        folder_path: Path to folder containing resumes
+        
+    Returns:
+        Batch processing results
+    """
     try:
         folder = Path(folder_path)
         if not folder.exists():

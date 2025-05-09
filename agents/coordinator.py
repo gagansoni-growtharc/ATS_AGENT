@@ -25,6 +25,18 @@ def score_resume(
     metadata: Optional[Dict[str, Any]] = None,
     strict_mode: bool = False
 ) -> Dict[str, Any]:
+    """
+    Score a resume against job requirements.
+    
+    Args:
+        resume_content: The content of the resume
+        job_requirements: Dictionary of job requirements
+        metadata: Optional metadata for the resume
+        strict_mode: Whether to use strict matching
+        
+    Returns:
+        Scoring results
+    """
     try:
         log_debug(f"Scoring resume with {len(resume_content)} chars against {len(job_requirements)} requirements")
 
@@ -52,6 +64,17 @@ def rename_and_move_resume(
     score: float,
     destination_folder: str = "filtered_resumes"
 ) -> Dict[str, Any]:
+    """
+    Rename and move a resume based on its score.
+    
+    Args:
+        source_path: Path to the resume file
+        score: Score to include in the filename
+        destination_folder: Destination folder
+        
+    Returns:
+        Result of the operation
+    """
     try:
         source = Path(source_path)
         if not source.exists():
@@ -88,6 +111,19 @@ def batch_process_resumes(
     top_n: int = 5,
     strict_mode: bool = False
 ) -> Dict[str, Any]:
+    """
+    Process multiple resumes and prepare them for scoring.
+    
+    Args:
+        resume_folder: Folder containing resumes
+        job_requirements: Dictionary of job requirements
+        metadata_folder: Optional folder with metadata
+        top_n: Number of top candidates to select
+        strict_mode: Whether to use strict matching
+        
+    Returns:
+        Batch processing results
+    """
     try:
         folder = Path(resume_folder)
         if not folder.exists():
