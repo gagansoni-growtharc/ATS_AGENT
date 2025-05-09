@@ -171,6 +171,56 @@ class ResumeAgent:
             log_error(f"Error finding metadata for {resume_name}: {str(e)}")
             return {"error": str(e), "success": False}
     
+    @tool
+    def batch_process_resume_folder(self, folder_path: str) -> Dict[str, Any]:
+        """
+        Process all resume files in a folder.
+        
+        Args:
+            folder_path: Path to folder containing resumes
+            
+        Returns:
+            Dict with processing results
+        """
+        try:
+            folder = Path(folder_path)
+            if not folder.exists():
+                log_error(f"Resume folder not found: {folder_path}")
+                return {"error": f"Folder not found: {folder_path}", "success": False}
+            
+            # List all PDF files in the directory
+            pdf_files = list(folder.glob("*.pdf"))
+            log_info(f"Found {len(pdf_files)} PDF files in {folder_path}")
+            
+            results = []
+            for pdf_file in pdf_files:
+                # Process each PDF
+                result = self.parse_resume_pdf(str(pdf_file))
+                if result.get("success", False):
+                    results.append({
+                        "filename": pdf_file.name,
+                        "path": str(pdf_file),
+                        "success": True
+                    })
+                else:
+                    results.append({
+                        "filename": pdf_file.name,
+                        "path": str(pdf_file),
+                        "success": False,
+                        "error": result.get("error", "Unknown error")
+                    })
+            
+            return {
+                "total_files": len(pdf_files),
+                "processed_files": len(results),
+                "results": results,
+                "success": True
+            }
+            
+        except Exception as e:
+            log_error(f"Error batch processing resumes: {str(e)}")
+            return {"error": str(e), "success": False}
+    
     def _setup_agent(self) -> Agent:
         """Set up the resume parsing agent."""
         return Agent(
@@ -185,13 +235,18 @@ class ResumeAgent:
                 3. Ensuring all required fields are present
                 4. Storing information in MongoDB (if available)
                 
+                IMPORTANT: When asked to process resumes in a folder, use the batch_process_resume_folder tool
+                rather than trying to list files directly. This will handle the file listing and processing
+                for you automatically.
+                
                 Always validate input files before processing them.
                 Metadata is optional - if not available, continue with resume content only.
             """),
             tools=[
                 self.parse_resume_pdf, 
                 self.load_metadata,
-                self.find_matching_metadata
+                self.find_matching_metadata,
+                self.batch_process_resume_folder
             ],
             knowledge=self.kb,
             add_references=True,

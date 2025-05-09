@@ -94,6 +94,64 @@ class JDAgent:
             return {"error": str(e), "success": False}
     
     @tool
+    def parse_job_description_content(self, jd_content: str) -> Dict[str, Any]:
+        """
+        Parse job description content directly.
+        
+        Args:
+            jd_content: The text content of the job description
+                
+        Returns:
+            Dict with parsed content
+        """
+        try:
+            log_debug(f"Parsing job description content")
+            
+            # Extract job title
+            job_title = extract_job_title(jd_content)
+            
+            # Extract required skills
+            required_skills = extract_required_skills(jd_content)
+            
+            # Extract responsibilities
+            responsibilities = extract_responsibilities(jd_content)
+            
+            # Extract qualifications
+            qualifications = extract_qualifications(jd_content)
+            
+            # Log to MongoDB if available
+            if hasattr(self.settings, 'MONGO_URI') and self.settings.MONGO_URI:
+                try:
+                    from pymongo import MongoClient
+                    client = MongoClient(self.settings.MONGO_URI)
+                    db = client.ats_agent
+                    collection = db.ats_job_descriptions
+                    collection.insert_one({
+                        "job_title": job_title,
+                        "required_skills": required_skills,
+                        "responsibilities": responsibilities,
+                        "qualifications": qualifications,
+                        "timestamp": datetime.datetime.now()
+                    })
+                except Exception as e:
+                    log_warn(f"Failed to store in MongoDB: {str(e)}")
+            
+            log_info(f"Job description parsed: {job_title}", source="jd_agent")
+            
+            return {
+                "job_title": job_title,
+                "required_skills": required_skills,
+                "responsibilities": responsibilities,
+                "qualifications": qualifications,
+                "content": jd_content,
+                "success": True
+            }
+            
+        except Exception as e:
+            log_error(f"Error parsing job description content: {str(e)}")
+            return {"error": str(e), "success": False}
+    
+    @tool
     def get_required_skills(self, parsed_jd: Dict[str, Any]) -> Dict[str, int]:
         """
         Extract required skills from parsed job description.
@@ -133,15 +191,18 @@ class JDAgent:
             add_name_to_instructions=True,
             instructions=dedent("""
                 You are a Job Description Parsing Agent responsible for:
-                1. Extracting information from job description files
+                1. Extracting information from job description files or direct text content
                 2. Identifying required skills and experience levels
                 3. Extracting responsibilities and qualifications
                 4. Providing structured data for resume matching
                 
-                Always validate input files before processing them.
+                IMPORTANT: You can process job descriptions either from a file path OR from direct text content.
+                If you are given direct text content, use the parse_job_description_content tool.
+                If you are given a file path, use the parse_job_description tool.
             """),
             tools=[
                 self.parse_job_description,
+                self.parse_job_description_content,
                 self.get_required_skills,
                 extract_job_title,
                 extract_required_skills,

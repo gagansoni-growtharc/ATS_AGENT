@@ -52,7 +52,8 @@ def main():
         success_criteria="Successfully match and rank candidates based on job description requirements",
         members=[resume_agent.agent, jd_agent.agent, coordinator.agent],
         instructions=[
-            "Process resumes and job descriptions",
+            "Process the job description text provided directly in the message, not as a file path",
+            "Process resumes from the folder path provided using the batch_process_resume_folder tool",
             "Score and rank candidates based on metadata and content",
             "Move top candidates to filtered folder",
             "Log all actions to MongoDB and console"
@@ -99,9 +100,12 @@ def main():
     
     # Build the message based on available parameters
     message = f"""
-    Process the job description: {jd_content}
+    IMPORTANT: The job description content is provided directly below - please parse this content directly, not as a file path:
+    
+    {jd_content}
     
     Resume folder: {str(resume_folder)}
+    Please process all resumes in this folder using the batch_process_resume_folder tool.
     """
     
     # Handle metadata folder (optional)
@@ -118,8 +122,12 @@ def main():
     
     Strict mode: {"enabled" if args.strict else "disabled"}
     
-    Parse all resumes, match them against the job description, and rank the candidates.
-    Move the top candidates to the filtered_resumes folder and log all actions.
+    Process steps:
+    1. Parse the job description content provided above using parse_job_description_content
+    2. Process all resumes in the folder using batch_process_resume_folder
+    3. Match resumes against the job requirements
+    4. Rank the candidates and move top matches to filtered_resumes folder
+    5. Log all actions
     """
     
     # Execute the workflow

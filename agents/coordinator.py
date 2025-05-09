@@ -147,6 +147,36 @@ class CoordinatorAgent:
         except Exception as e:
             log_error(f"Error in batch processing: {str(e)}")
             return {"error": str(e), "success": False}
+            
+    # Adding this alias to fix the issue
+    @tool
+    def batch_process_resume_folder(self, 
+                             folder_path: str, 
+                             job_requirements: Dict[str, Any],
+                             metadata_path: Optional[str] = None, 
+                             top_n: int = 5,
+                             strict_mode: bool = False) -> Dict[str, Any]:
+        """
+        Alias for batch_process_resumes to maintain compatibility.
+        
+        Args:
+            folder_path: Path to folder containing resumes
+            job_requirements: Dictionary of job requirements
+            metadata_path: Optional path to folder containing metadata files
+            top_n: Number of top candidates to select
+            strict_mode: Whether to require all skills to be present
+            
+        Returns:
+            Dict with results of batch processing
+        """
+        # Call the main implementation with renamed parameters
+        return self.batch_process_resumes(
+            resume_folder=folder_path,
+            job_requirements=job_requirements,
+            metadata_folder=metadata_path,
+            top_n=top_n,
+            strict_mode=strict_mode
+        )
     
     def _setup_agent(self) -> Agent:
         """Set up the coordinator agent."""
@@ -168,7 +198,8 @@ class CoordinatorAgent:
             tools=[
                 self.score_resume,
                 self.rename_and_move_resume,
-                self.batch_process_resumes
+                self.batch_process_resumes,
+                self.batch_process_resume_folder  # Add the new alias tool
             ],
             markdown=True,
         )
