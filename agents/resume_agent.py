@@ -5,7 +5,7 @@ This module defines resume parsing tools and bundles them into an Agent.
 """
 
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 import json
 import datetime
 
@@ -44,52 +44,34 @@ except Exception as e:
 
 
 @tool(description="Parse a resume PDF file and extract its text content.")
-def parse_resume_pdf(pdf_path: str) -> Dict[str, Any]:
-    """
-    Extract text content from a resume PDF.
-    
-    Args:
-        pdf_path: Path to the PDF file
-        
-    Returns:
-        Dictionary with resume content
-    """
+def parse_resume_pdf(pdf_path: str) -> str:
     try:
         path = Path(pdf_path)
         if not path.exists():
             log_error(f"PDF file not found: {pdf_path}")
-            return {"error": f"File not found: {pdf_path}", "success": False}
+            return json.dumps({"error": f"File not found: {pdf_path}", "success": False})
 
         log_debug(f"Parsing resume: {path.name}")
 
         if kb:
             content = kb.get_document_content(str(path))
             log_debug(f"Extracted {len(content)} characters from {path.name}")
-            return {"filename": path.name, "content": content, "success": True}
+            return json.dumps({"filename": path.name, "content": content, "success": True})
 
         log_warn(f"Knowledge base not available, using basic parsing for {path.name}")
-        return {"filename": path.name, "content": "PDF content could not be extracted", "success": False}
+        return json.dumps({"filename": path.name, "content": "PDF content could not be extracted", "success": False})
     except Exception as e:
         log_error(f"Error parsing resume {pdf_path}: {str(e)}")
-        return {"error": str(e), "success": False}
+        return json.dumps({"error": str(e), "success": False})
 
 
 @tool(description="Load metadata from a JSON file for a given resume.")
-def load_metadata(metadata_path: str) -> Dict[str, Any]:
-    """
-    Load resume metadata from a JSON file.
-    
-    Args:
-        metadata_path: Path to the metadata JSON file
-        
-    Returns:
-        Dictionary with resume metadata
-    """
+def load_metadata(metadata_path: str) -> str:
     try:
         path = Path(metadata_path)
         if not path.exists():
             log_warn(f"Metadata file not found: {metadata_path}")
-            return {"metadata": {}, "warning": f"File not found: {metadata_path}", "success": False}
+            return json.dumps({"metadata": {}, "warning": f"File not found: {metadata_path}", "success": False})
 
         log_debug(f"Loading metadata: {path.name}")
         with open(path, 'r', encoding='utf-8') as f:
@@ -110,59 +92,40 @@ def load_metadata(metadata_path: str) -> Dict[str, Any]:
                 log_warn(f"Failed to store metadata in MongoDB: {str(e)}")
 
         log_info(f"Metadata loaded for {path.stem}", source="resume_agent")
-        return {"metadata": metadata, "success": True}
+        return json.dumps({"metadata": metadata, "success": True})
     except Exception as e:
         log_error(f"Error loading metadata {metadata_path}: {str(e)}")
-        return {"error": str(e), "success": False}
+        return json.dumps({"error": str(e), "success": False})
 
 
 @tool(description="Find metadata file matching a given resume.")
-def find_matching_metadata(resume_name: str, metadata_folder: str) -> Dict[str, Any]:
-    """
-    Find a metadata file that matches a resume filename.
-    
-    Args:
-        resume_name: Resume filename (without extension)
-        metadata_folder: Folder containing metadata files
-        
-    Returns:
-        Path to matching metadata file if found
-    """
+def find_matching_metadata(resume_name: str, metadata_folder: str) -> str:
     try:
         metadata_path = Path(metadata_folder) / f"{resume_name}.json"
         if metadata_path.exists():
-            return {"metadata_path": str(metadata_path), "success": True}
+            return json.dumps({"metadata_path": str(metadata_path), "success": True})
         else:
             log_warn(f"No matching metadata found for {resume_name}")
-            return {"warning": f"No metadata for {resume_name}", "success": False}
+            return json.dumps({"warning": f"No metadata for {resume_name}", "success": False})
     except Exception as e:
         log_error(f"Error finding metadata for {resume_name}: {str(e)}")
-        return {"error": str(e), "success": False}
+        return json.dumps({"error": str(e), "success": False})
 
 
 @tool(description="Process all resume files in a folder.")
-def batch_process_resume_folder(folder_path: str) -> Dict[str, Any]:
-    """
-    Process all resume PDF files in a folder.
-    
-    Args:
-        folder_path: Path to folder containing resumes
-        
-    Returns:
-        Batch processing results
-    """
+def batch_process_resume_folder(folder_path: str) -> str:
     try:
         folder = Path(folder_path)
         if not folder.exists():
             log_error(f"Resume folder not found: {folder_path}")
-            return {"error": f"Folder not found: {folder_path}", "success": False}
+            return json.dumps({"error": f"Folder not found: {folder_path}", "success": False})
 
         pdf_files = list(folder.glob("*.pdf"))
         log_info(f"Found {len(pdf_files)} PDF files in {folder_path}")
 
         results = []
         for pdf_file in pdf_files:
-            result = parse_resume_pdf(str(pdf_file))
+            result = json.loads(parse_resume_pdf(str(pdf_file)))
             results.append({
                 "filename": pdf_file.name,
                 "path": str(pdf_file),
@@ -170,15 +133,16 @@ def batch_process_resume_folder(folder_path: str) -> Dict[str, Any]:
                 "error": result.get("error") if not result.get("success") else None
             })
 
-        return {
+        return json.dumps({
             "total_files": len(pdf_files),
             "processed_files": len(results),
             "results": results,
             "success": True
-        }
+        })
     except Exception as e:
         log_error(f"Error batch processing resumes: {str(e)}")
-        return {"error": str(e), "success": False}
+        return json.dumps({"error": str(e), "success": False})
+
 
 # 🧠 AGENT DEFINITION
 resume_parser_agent = Agent(

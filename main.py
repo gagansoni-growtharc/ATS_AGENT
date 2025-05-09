@@ -13,7 +13,7 @@ from agno.team.team import Team
 from agents.resume_agent import resume_parser_agent
 from agents.jd_agent import jd_parser_agent
 from agents.coordinator import coordinator_agent
-from logger.logger import logger, log_info, log_debug
+from logger.logger import logger, log_info, log_debug, log_error
 from config.settings import get_settings
 
 def parse_args():
@@ -30,14 +30,14 @@ def main():
     load_dotenv()
     # Parse command-line arguments
     args = parse_args()
-    
+
     # Load settings
     settings = get_settings()
     
     # Configure logging based on debug flag
     if args.debug:
         logger.setLevel("DEBUG")
-    
+
     log_info("Starting ATS Resume Filtering System", center=True)
     
     # Create the team
@@ -60,7 +60,7 @@ def main():
         markdown=True,
         show_members_responses=True,
     )
-    
+
     # Process job description
     job_description_path = Path(args.jd)
     if not job_description_path.exists():
@@ -70,7 +70,6 @@ def main():
     # Try different encodings to read the file
     encodings_to_try = ['utf-8', 'latin-1', 'cp1252', 'iso-8859-1']
     jd_content = None
-    
     for encoding in encodings_to_try:
         try:
             with open(job_description_path, 'r', encoding=encoding) as f:
@@ -79,21 +78,19 @@ def main():
             break
         except UnicodeDecodeError:
             log_debug(f"Failed to read with {encoding} encoding, trying next...")
-    
+
     if jd_content is None:
         logger.error("Failed to read job description file with any encoding, using binary mode")
-        # Last resort: read as binary and decode with errors='replace'
         with open(job_description_path, 'rb') as f:
             jd_content = f.read().decode('utf-8', errors='replace')
-    
+
     # Process resumes and metadata
     resume_folder = Path(args.folder)
-    
     if not resume_folder.exists():
         logger.error(f"Resume folder not found: {args.folder}")
         return
-    
-    # Build the message based on available parameters
+
+    # Build the message for the ATS team
     message = f"""
     I need to process job applications for the following job description:
     
@@ -107,12 +104,8 @@ def main():
     1. First, use the JDParser to extract key information from the job description text I've provided
     2. Then, use the ResumeParser to process all resumes from the folder at: {str(resume_folder)}
     3. Finally, use the Coordinator to match and rank candidates
-    
-    Be explicit when calling tools and make sure to provide the correct parameters.
-    For JDParser, use parse_job_description_content with the job description text.
-    For ResumeParser, use batch_process_resume_folder with the resume folder path.
     """
-    
+
     # Handle metadata folder (optional)
     if args.metadata:
         metadata_folder = Path(args.metadata)
@@ -120,18 +113,20 @@ def main():
             message += f"\n\nAdditional candidate metadata is available in this folder: {str(metadata_folder)}"
         else:
             log_info(f"Metadata folder not found: {args.metadata}, continuing without metadata")
-    
+
     message += f"\n\nStrict mode is {'enabled' if args.strict else 'disabled'} for skills matching."
-    
-    # Execute the workflow
-    log_info("Starting ATS workflow", center=True)
-    ats_team.print_response(
-        message=message,
-        stream=True,
-        stream_intermediate_steps=True,
-    )
-    
-    log_info("ATS workflow completed", center=True)
+
+    try:
+        # Execute the workflow
+        log_info("Starting ATS workflow", center=True)
+        ats_team.print_response(
+            message=message,
+            stream=True,
+            stream_intermediate_steps=True,
+        )
+        log_info("ATS workflow completed", center=True)
+    except Exception as e:
+        log_error(f"Error occurred while processing ATS workflow: {str(e)}")
 
 if __name__ == "__main__":
     main()
