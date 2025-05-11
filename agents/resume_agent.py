@@ -1,11 +1,11 @@
 """
-Resume Parsing Agent (Functional Style)
+Resume Parsing Agent (Functional Style) - Fixed Implementation
 
 This module defines resume parsing tools and bundles them into an Agent.
 """
 
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, List
 import json
 import datetime
 
@@ -43,6 +43,43 @@ except Exception as e:
     kb = None
 
 
+def safe_read_pdf(path: Path) -> str:
+    """Safely read the content of a PDF file using fallback methods."""
+    try:
+        # Try using PyMuPDF (fitz) if available
+        try:
+            import fitz
+            doc = fitz.open(str(path))
+            content = ""
+            for page in doc:
+                content += page.get_text()
+            return content
+        except ImportError:
+            log_warn("PyMuPDF not available, falling back to basic extraction")
+            
+        # Try using the knowledge base
+        if kb:
+            content = kb.get_document_content(str(path))
+            if content:
+                return content
+            
+        # Fallback to text reading with different encodings
+        for encoding in ['utf-8', 'latin-1', 'cp1252', 'iso-8859-1']:
+            try:
+                with open(path, 'r', encoding=encoding) as f:
+                    return f.read()
+            except UnicodeDecodeError:
+                continue
+                
+        # Last resort: binary read with replace for decoding errors
+        with open(path, 'rb') as f:
+            return f.read().decode('utf-8', errors='replace')
+            
+    except Exception as e:
+        log_error(f"Error reading PDF {path}: {str(e)}")
+        return f"[Error reading PDF: {str(e)}]"
+
+
 @tool(description="Parse a resume PDF file and extract its text content.")
 def parse_resume_pdf(pdf_path: str) -> str:
     try:
@@ -52,14 +89,10 @@ def parse_resume_pdf(pdf_path: str) -> str:
             return json.dumps({"error": f"File not found: {pdf_path}", "success": False})
 
         log_debug(f"Parsing resume: {path.name}")
-
-        if kb:
-            content = kb.get_document_content(str(path))
-            log_debug(f"Extracted {len(content)} characters from {path.name}")
-            return json.dumps({"filename": path.name, "content": content, "success": True})
-
-        log_warn(f"Knowledge base not available, using basic parsing for {path.name}")
-        return json.dumps({"filename": path.name, "content": "PDF content could not be extracted", "success": False})
+        content = safe_read_pdf(path)
+        log_debug(f"Extracted {len(content)} characters from {path.name}")
+        
+        return json.dumps({"filename": path.name, "content": content, "success": True})
     except Exception as e:
         log_error(f"Error parsing resume {pdf_path}: {str(e)}")
         return json.dumps({"error": str(e), "success": False})
@@ -125,13 +158,25 @@ def batch_process_resume_folder(folder_path: str) -> str:
 
         results = []
         for pdf_file in pdf_files:
-            result = json.loads(parse_resume_pdf(str(pdf_file)))
-            results.append({
-                "filename": pdf_file.name,
-                "path": str(pdf_file),
-                "success": result.get("success", False),
-                "error": result.get("error") if not result.get("success") else None
-            })
+            try:
+                # Directly extract content without calling parse_resume_pdf tool
+                path = str(pdf_file)
+                content = safe_read_pdf(pdf_file)
+                
+                results.append({
+                    "filename": pdf_file.name,
+                    "path": path,
+                    "content": content,
+                    "success": True
+                })
+            except Exception as e:
+                log_error(f"Error processing {pdf_file.name}: {str(e)}")
+                results.append({
+                    "filename": pdf_file.name,
+                    "path": str(pdf_file),
+                    "success": False,
+                    "error": str(e)
+                })
 
         return json.dumps({
             "total_files": len(pdf_files),
