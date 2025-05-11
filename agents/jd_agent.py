@@ -42,7 +42,7 @@ def parse_job_description(jd_path: str) -> Dict[str, Any]:
         path = Path(jd_path)
         if not path.exists():
             log_error(f"Job description file not found: {jd_path}")
-            return {"error": f"File not found: {jd_path}", "success": False}
+            return json.dumps({"error": f"File not found: {jd_path}", "success": False})
 
         log_debug(f"Parsing job description: {path.name}")
         
@@ -51,13 +51,13 @@ def parse_job_description(jd_path: str) -> Dict[str, Any]:
             jd_content = read_file_content(path)
         except Exception as e:
             log_error(f"Failed to read job description file: {str(e)}")
-            return {"error": f"Failed to read file: {str(e)}", "success": False}
+            return json.dumps({"error": f"Failed to read file: {str(e)}", "success": False})
 
         # Call the parse_job_description_content function directly
         return _parse_job_description_content(jd_content)
     except Exception as e:
         log_error(f"Error parsing job description {jd_path}: {str(e)}")
-        return {"error": str(e), "success": False}
+        return json.dumps({"error": str(e), "success": False})
 
 
 @tool(description="Parse job description content directly from string input.")
@@ -76,7 +76,7 @@ def parse_job_description_content(jd_content: str) -> Dict[str, Any]:
         return _parse_job_description_content(jd_content)
     except Exception as e:
         log_error(f"Error parsing job description content: {str(e)}")
-        return {"error": str(e), "success": False}
+        return json.dumps({"error": str(e), "success": False})
 
 
 def _parse_job_description_content(jd_content: str) -> Dict[str, Any]:
@@ -121,17 +121,17 @@ def _parse_job_description_content(jd_content: str) -> Dict[str, Any]:
         log_info(f"Job description parsed: {job_title_obj}", source="jd_agent")
 
         # Return the structured result
-        return {
+        return json.dumps({
             "job_title": job_title_obj,
             "required_skills": required_skills_obj,
             "responsibilities": responsibilities_obj,
             "qualifications": qualifications_obj,
             "content": jd_content,
             "success": True
-        }
+        })
     except Exception as e:
         log_error(f"Error in _parse_job_description_content: {str(e)}")
-        return {"error": str(e), "success": False}
+        return json.dumps({"error": str(e), "success": False})
 
 
 @tool(description="Extract only the required skills from a parsed JD.")
@@ -151,7 +151,7 @@ def get_required_skills(parsed_jd: Dict[str, Any]) -> Dict[str, Any]:
 
         if not parsed_jd.get("success", False):
             log_error("Invalid job description data")
-            return {"error": "Invalid job description data", "success": False}
+            return json.dumps({"error": "Invalid job description data", "success": False})
 
         required_skills = parsed_jd.get("required_skills", {})
         if isinstance(required_skills, str):
@@ -162,10 +162,10 @@ def get_required_skills(parsed_jd: Dict[str, Any]) -> Dict[str, Any]:
             required_skills = json.loads(extract_required_skills(parsed_jd["content"]))
 
         log_info(f"Extracted {len(required_skills)} required skills", source="jd_agent")
-        return {"skills": required_skills, "success": True}
+        return json.dumps({"skills": required_skills, "success": True})
     except Exception as e:
         log_error(f"Error extracting required skills: {str(e)}")
-        return {"error": str(e), "success": False}
+        return json.dumps({"error": str(e), "success": False})
 
 
 # 🧠 AGENT DEFINITION
