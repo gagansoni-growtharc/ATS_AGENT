@@ -3,24 +3,19 @@ from pathlib import Path
 import json
 from logger.logger import log_info, log_debug, log_error, log_warn
 from typing import Dict
-from tools.pdf_utils import read_pdf_content
 
 def safe_read_pdf(path: Path) -> str:
-    """Safely read the content of a PDF file using the centralized PDF utility."""
+    """Safely read the content of a PDF file using fallback encodings."""
     try:
-        return read_pdf_content(path)
-    except Exception as e:
-        log_error(f"Error in PDF utility: {str(e)}, falling back to basic methods")
-        try:
-            return path.read_text(encoding='utf-8')
-        except UnicodeDecodeError:
-            for encoding in ['latin-1', 'cp1252', 'iso-8859-1']:
-                try:
-                    return path.read_text(encoding=encoding)
-                except UnicodeDecodeError:
-                    continue
-            return path.read_bytes().decode('utf-8', errors='replace')
-        
+        return path.read_text(encoding='utf-8')
+    except UnicodeDecodeError:
+        for encoding in ['latin-1', 'cp1252', 'iso-8859-1']:
+            try:
+                return path.read_text(encoding=encoding)
+            except UnicodeDecodeError:
+                continue
+        return path.read_bytes().decode('utf-8', errors='replace')
+
 def success_response(data: Dict) -> str:
     data["success"] = True
     return json.dumps(data)

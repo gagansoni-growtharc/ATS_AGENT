@@ -19,7 +19,6 @@ from tools.jd_parser import (
     extract_responsibilities,
     extract_qualifications
 )
-from tools.pdf_utils import read_file_content
 
 from config.settings import get_settings
 from logger.logger import log_info, log_debug, log_error, log_warn
@@ -45,13 +44,8 @@ def parse_job_description(jd_path: str) -> Dict[str, Any]:
             return json.dumps({"error": f"File not found: {jd_path}", "success": False})
 
         log_debug(f"Parsing job description: {path.name}")
-        
-        # Use our PDF utility to read the file content (works for both PDF and text files)
-        try:
-            jd_content = read_file_content(path)
-        except Exception as e:
-            log_error(f"Failed to read job description file: {str(e)}")
-            return json.dumps({"error": f"Failed to read file: {str(e)}", "success": False})
+        with open(path, 'r', encoding='utf-8') as f:
+            jd_content = f.read()
 
         # Call the parse_job_description_content function directly
         return _parse_job_description_content(jd_content)

@@ -18,7 +18,6 @@ from agno.tools import tool
 
 from config.settings import get_settings
 from logger.logger import log_info, log_debug, log_error, log_warn
-from tools.pdf_utils import read_pdf_content
 
 # Load settings
 settings = get_settings()
@@ -47,25 +46,39 @@ except Exception as e:
 def safe_read_pdf(path: Path) -> str:
     """Safely read the content of a PDF file using fallback methods."""
     try:
-        # Try using the PDF utility first
+        # Try using PyMuPDF (fitz) if available
         try:
-            return read_pdf_content(path)
-        except Exception as e:
-            log_warn(f"PDF utility failed: {str(e)}, trying knowledge base")
+            import fitz
+            doc = fitz.open(str(path))
+            content = ""
+            for page in doc:
+                content += page.get_text()
+            return content
+        except ImportError:
+            log_warn("PyMuPDF not available, falling back to basic extraction")
             
-        # Try using the knowledge base as fallback
+        # Try using the knowledge base
         if kb:
             content = kb.get_document_content(str(path))
             if content:
                 return content
+            
+        # Fallback to text reading with different encodings
+        for encoding in ['utf-8', 'latin-1', 'cp1252', 'iso-8859-1']:
+            try:
+                with open(path, 'r', encoding=encoding) as f:
+                    return f.read()
+            except UnicodeDecodeError:
+                continue
                 
-        # If all else fails, try basic text extraction
+        # Last resort: binary read with replace for decoding errors
         with open(path, 'rb') as f:
             return f.read().decode('utf-8', errors='replace')
             
     except Exception as e:
         log_error(f"Error reading PDF {path}: {str(e)}")
         return f"[Error reading PDF: {str(e)}]"
+
 
 @tool(description="Parse a resume PDF file and extract its text content.")
 def parse_resume_pdf(pdf_path: str) -> str:
