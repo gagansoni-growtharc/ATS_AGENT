@@ -15,6 +15,7 @@ from agents.jd_agent import jd_parser_agent
 from agents.coordinator import coordinator_agent
 from logger.logger import logger, log_info, log_debug, log_error
 from config.settings import get_settings
+from tools.pdf_utils import read_file_content
 
 def parse_args():
     parser = argparse.ArgumentParser(description="ATS Resume Filtering System")
@@ -67,17 +68,13 @@ def main():
         logger.error(f"Job description file not found: {args.jd}")
         return
 
-    # Try different encodings to read the file
-    encodings_to_try = ['utf-8', 'latin-1', 'cp1252', 'iso-8859-1']
-    jd_content = None
-    for encoding in encodings_to_try:
-        try:
-            with open(job_description_path, 'r', encoding=encoding) as f:
-                jd_content = f.read()
-            log_info(f"Successfully read job description file using {encoding} encoding")
-            break
-        except UnicodeDecodeError:
-            log_debug(f"Failed to read with {encoding} encoding, trying next...")
+    # Read job description content using our PDF utility
+    try:
+        jd_content = read_file_content(job_description_path)
+        log_info(f"Successfully read job description file: {job_description_path.name}")
+    except Exception as e:
+        log_error(f"Error reading job description file: {str(e)}")
+        return
 
     if jd_content is None:
         logger.error("Failed to read job description file with any encoding, using binary mode")
